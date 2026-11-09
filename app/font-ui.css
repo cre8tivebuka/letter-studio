@@ -1,0 +1,57 @@
+/* Font controls share the Letter Studio cobalt palette. */
+.document-toolbar .add-font-button.font-manager-trigger{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:34px;min-width:104px;padding:7px 10px;border:1px solid #c5d4ff;border-radius:6px;background:#edf2ff;color:#0047ff;font-size:11px;font-weight:600;white-space:nowrap}
+.document-toolbar .add-font-button.font-manager-trigger:hover{border-color:#0047ff;background:#e2eaff}
+.document-toolbar .font-manager-trigger .font-trigger-plus{padding-left:5px;margin-left:2px;border-left:1px solid #c5d4ff;box-sizing:content-box}
+.font-dialog.font-manager{width:min(610px,calc(100vw - 28px));padding:0;border-radius:16px;max-height:90dvh;overflow:auto;box-shadow:0 24px 80px #10101030}
+.font-manager .font-manager-header{display:flex;align-items:center;gap:13px;padding:24px 26px 21px;border-bottom:1px solid #d9dce1;background:#f5f7fa}
+.font-manager .font-manager-symbol{width:46px;height:46px;border-radius:11px;display:grid;place-items:center;background:#0047ff;color:white;font-size:26px;font-weight:500;letter-spacing:-2px;flex-shrink:0}
+.font-manager-header>div{flex:1;min-width:0}
+.font-manager .font-manager-header h2{font-size:21px;letter-spacing:-.6px}
+.font-manager .font-manager-header p{font-size:12px;color:#5c626c;margin-top:6px;line-height:1.5}
+.font-manager .font-manager-header .icon-button{width:31px;height:31px;background:transparent;border-color:transparent;align-self:flex-start}
+.font-manager .font-manager-header .icon-button:hover{background:#e8ebf0}
+.font-manager .font-manager-body{padding:23px 26px}
+.font-manager .font-dropzone{display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;min-height:180px;padding:21px 16px;background:#f8faff;border:1px dashed #9eb7ff;border-radius:11px;text-align:center;color:#101010;transition:background .15s,border-color .15s}
+.font-manager .font-dropzone:not(:disabled):hover,.font-manager .font-dropzone.is-dragging{background:#edf2ff;border-color:#0047ff}
+.font-manager .font-drop-icon{display:grid;place-items:center;width:41px;height:41px;color:#0047ff;background:white;border:1px solid #dbe5ff;border-radius:10px;margin-bottom:12px}
+.font-manager .font-dropzone strong{font-size:14px;font-weight:600}
+.font-manager .font-drop-action{display:flex;align-items:center;gap:4px;font-size:12px;color:#0047ff;margin-top:7px}
+.font-manager .font-drop-types{display:flex;align-items:center;gap:6px;margin-top:15px}
+.font-manager .font-drop-types>span{font-size:9px;letter-spacing:.5px;font-weight:600;border:1px solid #d9dce1;background:white;padding:3px 6px;border-radius:4px}
+.font-manager .font-drop-types small{font-size:10px;color:#5c626c;margin-left:3px}
+.font-manager .font-name-field{margin-top:18px}
+.font-manager .font-name-field label,.font-manager .font-link-panel label{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;margin-bottom:8px}
+.font-manager .font-name-field label span{font-weight:400;color:#5c626c}
+.font-manager .font-name-field input{width:100%;font-size:12px}
+.font-manager .font-link-panel{margin-top:20px;padding-top:19px;border-top:1px solid #e8ebf0}
+.font-manager .font-link-panel label svg{color:#8a9099}
+.font-manager .font-link-panel>div{display:flex;gap:8px}
+.font-manager .font-link-panel input{min-width:0;flex:1;font-size:12px}
+.font-manager .font-link-panel .button{font-size:11px;padding:9px 12px}
+.font-manager .font-progress{font-size:12px;color:#0047ff;margin-top:12px}
+.font-manager .font-collection{margin-top:24px}
+.font-manager .font-collection-heading{display:flex;align-items:center;gap:8px;margin-bottom:13px}
+.font-manager .font-collection-heading h3{font-size:12px;font-weight:600}
+.font-manager .font-collection-heading>span{display:grid;place-items:center;min-width:21px;height:20px;padding:0 5px;border-radius:5px;background:#f5f7fa;border:1px solid #d9dce1;color:#5c626c;font-size:10px}
+.font-manager .font-collection-empty{display:flex;align-items:center;gap:13px;padding:17px 15px;border-radius:9px;background:#f5f7fa;border:1px solid #e8ebf0}
+.font-manager .font-collection-empty>svg{color:#8a9099;flex-shrink:0}
+.font-manager .font-collection-empty strong{font-size:12px;font-weight:500}
+.font-manager .font-collection-empty p{font-size:11px;line-height:1.6;color:#5c626c;margin-top:4px}
+.font-manager .font-cards{display:grid;gap:12px}
+.font-manager .font-card{border:1px solid #d9dce1;border-radius:10px;padding:16px;overflow:hidden}
+.font-manager .font-card-top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.font-manager .font-card-top>div{min-width:0}
+.font-manager .font-card h4{margin:0;font-size:12px;font-weight:600;overflow-wrap:anywhere}
+.font-manager .font-card-top span{display:block;font-size:10px;color:#5c626c;margin-top:5px}
+.font-manager .font-card .font-remove{width:29px;height:29px;border-color:transparent;color:#8a9099}
+.font-manager .font-card .font-remove:hover{background:#f5f7fa;color:#101010}
+.font-manager .font-specimen{font-size:24px;line-height:1.4;margin:20px 0 15px;overflow-wrap:anywhere;color:#101010}
+.font-manager .font-card-bottom{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid #e8ebf0;padding-top:12px}
+.font-manager .font-card-bottom>span{font-size:11px;color:#8a9099}
+.font-manager .font-card-bottom .button{font-size:11px;min-height:31px;padding:6px 10px;color:#0047ff;background:#f8faff;border-color:#dbe5ff}
+.font-manager .font-manager-note{padding:16px 26px 20px;margin:0;border-top:1px solid #d9dce1;background:#f5f7fa;font-size:10px;line-height:1.7;color:#5c626c}
+.font-manager .notice{margin-top:14px}
+.font-loading{animation:font-spin 1s linear infinite}
+@keyframes font-spin{to{transform:rotate(360deg)}}
+@media(max-width:480px){.document-toolbar .add-font-button.font-manager-trigger{min-width:97px;padding:6px 8px;gap:5px}.document-toolbar .font-manager-trigger .font-trigger-plus{display:none}.font-manager .font-manager-header{padding:20px 18px;gap:11px}.font-manager .font-manager-header h2{font-size:19px}.font-manager .font-manager-symbol{width:39px;height:42px;font-size:24px}.font-manager .font-manager-header p{font-size:11px}.font-manager .font-manager-body{padding:19px 18px}.font-manager .font-manager-note{padding:15px 18px 18px}.font-manager .font-dropzone{min-height:174px}.font-manager .font-link-panel>div{flex-wrap:wrap}.font-manager .font-link-panel input{flex-basis:100%}.font-manager .font-link-panel .button{width:100%}.font-manager .font-specimen{font-size:22px}}
+@media(prefers-reduced-motion:reduce){.font-loading{animation:none}}
