@@ -2,7 +2,7 @@
 import {useEffect,useRef,useState} from 'react';
 import {FileText,Upload,Download,Check,ChevronLeft,ChevronRight,Scan} from 'lucide-react';
 import DocumentEditor from './document-editor';
-import WritingArea from './writing-area';
+
 import PreviewWritingArea from './preview-writing-area';
 import FontLibrary from './font-library';
 import {type CustomFont,fontAlias} from '@/lib/custom-fonts';
@@ -97,7 +97,7 @@ export default function Studio(){
       <span className="upload-icon">{head?<Check size={23}/>:<Upload size={23}/>}</span>
       <span className="upload-copy"><strong>{head?head.name:'Upload an empty PDF letterhead'}</strong><span>{head?'Click to replace your PDF':'Choose a file or drop it here · Up to 20 MB'}</span></span>
      </button>
-     {head&&<WritingArea value={head} open={marginsOpen} onChange={region=>patch({head:{...head,...region}})} onToggle={setMarginsOpen}/>}
+    
     </section>
     <section className="panel letter-panel" aria-labelledby="letter-heading">
      <div className="section-heading"><h2 id="letter-heading">Your letter</h2><button className="button secondary import-word" disabled={!!busy} onClick={()=>wordInput.current?.click()}><Upload size={15}/> Import Word</button></div>
