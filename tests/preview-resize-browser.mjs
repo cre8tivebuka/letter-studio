@@ -9,13 +9,14 @@ page.on('pageerror',e=>{errors.push(e.message);console.error(e.stack);});
 const output='outputs/resize-qa';await mkdir(output,{recursive:true});
 const box=()=>page.getByRole('group',{name:'Writing area',exact:true});
 const handle=name=>page.getByRole('button',{name:'Resize writing area '+name,exact:true});
-const slider=name=>page.getByRole('slider',{name:name+' margin',exact:true});
-const region=async()=>({
- left:Number(await slider('Left').inputValue())/100,
- right:1-Number(await slider('Right').inputValue())/100,
- top:Number(await slider('Top').inputValue())/100,
- bottom:1-Number(await slider('Bottom').inputValue())/100
-});
+// The margin sliders were removed; read the region from the on-preview box instead.
+const region=()=>box().evaluate(e=>{const n=v=>parseFloat(v)/100;const left=n(e.style.left),top=n(e.style.top);return {left,right:left+n(e.style.width),top,bottom:top+n(e.style.height)};});
+let letterhead;
+// Re-uploading the letterhead restores the default writing area (there is no reset button any more).
+async function resetArea(){
+ await page.locator('#letterhead-file').setInputFiles({name:'blank.pdf',mimeType:'application/pdf',buffer:letterhead});
+ await page.waitForFunction(()=>{const e=document.querySelector('.writing-area');return e&&Math.abs(parseFloat(e.style.top)-20)<.01&&Math.abs(parseFloat(e.style.left)-10)<.01;});
+}
 const near=(a,b,tol=.002)=>assert.ok(Math.abs(a-b)<=tol,a+' should be near '+b);
 async function drag(target,dx,dy,whileDown){
  await target.scrollIntoViewIfNeeded();const bounds=await target.boundingBox();
@@ -39,13 +40,12 @@ try{
  await page.goto(testUrl);
  const blank=await PDFDocument.create();const sheet=blank.addPage([595,842]);
  sheet.drawText('LETTER STUDIO',{x:60,y:790,size:22,color:rgb(0,.28,1)});
- await page.locator('#letterhead-file').setInputFiles({name:'blank.pdf',mimeType:'application/pdf',buffer:Buffer.from(await blank.save())});
+ await page.locator('#letterhead-file').setInputFiles({name:'blank.pdf',mimeType:'application/pdf',buffer:letterhead=Buffer.from(await blank.save())});
  await page.getByRole('img',{name:'Uploaded empty letterhead'}).waitFor({timeout:60000});
  const editor=page.getByRole('textbox',{name:'LETTER CONTENT'});
  await editor.fill('ALIGNMENT MARKER\n\n'+Array.from({length:24},(_,i)=>'Paragraph '+(i+1)+'. The writing area controls the position and wrapping of every line in this letter. All pages must follow the adjusted margins.').join('\n\n'));
  const before=await pdfInfo();
  await page.getByRole('button',{name:'Edit writing area in preview'}).click();
- assert.ok(await page.locator('.margin-settings').evaluate(e=>e.open));
  await box().waitFor();const paper=await page.locator('.paper').boundingBox();
  await drag(handle('top left'),paper.width*.08,paper.height*.06,async()=>{
   const current=await region();near(current.left,.18);near(current.top,.26);
@@ -70,18 +70,17 @@ try{
  p=await page.locator('.paper').boundingBox();
  await drag(page.getByRole('button',{name:'Move writing area',exact:true}),p.width,p.height);
  r=await region();near(r.right,.98);near(r.bottom,.98);near(r.right-r.left,width);near(r.bottom-r.top,height);
- await page.getByRole('button',{name:'Reset margins'}).click();
+ await resetArea();
  await handle('top').focus();await page.keyboard.press('ArrowDown');near((await region()).top,.21);
  await page.keyboard.press('Shift+ArrowDown');near((await region()).top,.26);
  await page.getByRole('button',{name:'Move writing area',exact:true}).focus();await page.keyboard.press('ArrowRight');
  r=await region();near(r.left,.11);near(r.right,.91);
- await page.getByRole('button',{name:'Reset margins'}).click();
+ await resetArea();
  p=await page.locator('.paper').boundingBox();
  await drag(handle('right'),-p.width*.1,0,async()=>{await page.keyboard.press('Escape');});
  r=await region();near(r.right,.9);
- await slider('Left').fill('15');
- const b=await box().boundingBox();p=await page.locator('.paper').boundingBox();near((b.x-p.x)/p.width,.15,.004);
- await page.getByRole('button',{name:'Reset margins'}).click();
+ // The box drawn on screen matches its stored position.
+ const b=await box().boundingBox();p=await page.locator('.paper').boundingBox();near((b.x-p.x)/p.width,.1,.004);
  // Real touch events exercise the same pointer-capture path on a mobile viewport.
  await page.setViewportSize({width:390,height:844});
  await handle('bottom right').scrollIntoViewIfNeeded();
@@ -96,7 +95,7 @@ try{
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
  await page.locator('.preview-column').screenshot({path:output+'/resize-mobile.png'});
  await page.getByRole('button',{name:'Edit writing area in preview'}).click();
- assert.equal(await box().count(),0);assert.equal(await page.locator('.margin-settings').evaluate(e=>e.open),false);
+ assert.equal(await box().count(),0);
  await page.getByRole('button',{name:'Add fonts',exact:true}).click();
  await page.locator('.font-dialog').screenshot({path:output+'/fonts-mobile.png'});
  assert.ok(await page.locator('.font-dialog').evaluate(e=>e.scrollWidth<=e.clientWidth));

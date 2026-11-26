@@ -95,16 +95,18 @@ try{
  const styledBytes=await page.evaluate(async()=>Array.from(new Uint8Array(await(await fetch(document.querySelector('a[download]').href)).arrayBuffer())));
  const styled=await PDFDocument.load(new Uint8Array(styledBytes));
  assert.ok(styled.context.enumerateIndirectObjects().some(([,obj])=>obj.toString().includes('/Times-Bold')));
- await page.locator('.margin-settings summary').click();
- await page.getByRole('slider',{name:'Top margin',exact:true}).fill('25');
- await page.getByRole('link',{name:'Download PDF',exact:true}).waitFor({timeout:60000});
+ // The writing area is adjusted directly on the preview (the margin sliders were removed).
+ const areaTop=()=>page.getByLabel('Writing area',{exact:true}).evaluate(e=>parseFloat(e.style.top));
+ await page.getByRole('button',{name:'Edit writing area in preview'}).click();
  assert.ok(await page.getByLabel('Writing area',{exact:true}).isVisible());
- await page.locator('.letterhead-panel').screenshot({path:output+'/writing-area-desktop.png'});
- await page.getByRole('button',{name:'Reset margins'}).click();
- assert.equal(await page.getByRole('slider',{name:'Top margin',exact:true}).inputValue(),'20');
+ await page.getByRole('button',{name:'Resize writing area top',exact:true}).focus();
+ await page.keyboard.press('Shift+ArrowDown');assert.equal(Math.round(await areaTop()),25);
+ await page.getByRole('link',{name:'Download PDF',exact:true}).waitFor({timeout:60000});
+ await page.locator('.preview-column').screenshot({path:output+'/writing-area-desktop.png'});
+ await page.keyboard.press('Shift+ArrowUp');assert.equal(Math.round(await areaTop()),20);
  await page.setViewportSize({width:390,height:844});
  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
- await page.locator('.letterhead-panel').screenshot({path:output+'/writing-area-mobile.png'});
+ await page.locator('.preview-column').screenshot({path:output+'/writing-area-mobile.png'});
  await page.reload();await page.getByRole('heading',{name:'Letter Studio',exact:true}).waitFor();
  assert.equal(await page.getByRole('img',{name:'Uploaded empty letterhead'}).count(),0);
  assert.equal(await page.getByRole('textbox',{name:'LETTER CONTENT'}).innerText(),'');
