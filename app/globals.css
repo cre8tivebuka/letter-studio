@@ -173,3 +173,15 @@ h3{font-size:14px}
 .image-done{position:absolute;left:50%;top:100%;transform:translate(-50%,10px);display:inline-flex;align-items:center;gap:5px;min-height:30px;padding:6px 11px;border:0;border-radius:6px;background:var(--cobalt);color:var(--white);font-size:11px;font-weight:600;white-space:nowrap;box-shadow:0 2px 8px #10101030;z-index:3}
 .image-done:hover{background:#003bd6}
 @media(max-width:480px){.image-list li{flex-wrap:wrap}.image-name{flex-basis:calc(100% - 60px)}.image-list select{flex:1}}
+/* Freehand signature */
+.button.draw-signature{width:100%;margin-top:10px;font-size:12px}
+.button.draw-signature.active{color:var(--cobalt);background:#edf2ff;border-color:#b9ccff}
+.signature-pad{position:absolute;inset:0;width:100%;height:100%;z-index:3;cursor:crosshair;touch-action:none;outline:2px dashed var(--cobalt);outline-offset:-2px;background:#0047ff05}
+.draw-tools .area-help{margin-top:10px}
+.draw-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:10px}
+.draw-actions .button{min-height:35px;padding:8px 12px;font-size:11px}
+.draw-spacer{flex:1}
+.ink-colors{display:flex;gap:6px;margin-right:4px}
+.ink-swatch{width:26px;height:26px;padding:0;border:2px solid var(--white);border-radius:50%;box-shadow:0 0 0 1px var(--silver)}
+.ink-swatch.active{box-shadow:0 0 0 2px var(--cobalt)}
+@media(max-width:480px){.draw-spacer{display:none}.draw-actions .button.primary{flex:1}}

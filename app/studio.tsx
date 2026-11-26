@@ -1,12 +1,14 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
-import {FileText,Upload,Download,Check,ChevronLeft,ChevronRight,Scan} from 'lucide-react';
+import {FileText,Upload,Download,Check,ChevronLeft,ChevronRight,Scan,Undo2,Eraser,X} from 'lucide-react';
 import DocumentEditor from './document-editor';
 
 import PreviewWritingArea from './preview-writing-area';
 import FontLibrary from './font-library';
 import ImageLibrary from './image-library';
 import PreviewImage from './preview-image';
+import SignaturePad from './signature-pad';
+import {exportSignature,INK_COLORS,type InkStroke} from '@/lib/signature-drawing';
 import {type CustomFont,fontAlias} from '@/lib/custom-fonts';
 import type {Letterhead} from '@/lib/documents';
 import {assetUrl} from '@/lib/assets';
@@ -26,11 +28,12 @@ export default function Studio(){
  const [busy,setBusy]=useState(''),[error,setError]=useState(''),[previewError,setPreviewError]=useState(''),[notice,setNotice]=useState('');
  const [marginsOpen,setMarginsOpen]=useState(false),[dragging,setDragging]=useState(false);
  const [resizing,setResizing]=useState(false),[movingImage,setMovingImage]=useState(false);
+ const [drawing,setDrawing]=useState(false),[strokes,setStrokes]=useState<InkStroke[]>([]),[inkColor,setInkColor]=useState<string>(INK_COLORS[0].value);
  const headInput=useRef<HTMLInputElement>(null),wordInput=useRef<HTMLInputElement>(null);
  const {head,title,text,html,fontSize,fontFamily,images,placing}=draft;
  const rendered=pageImage?.source===draft&&pageImage?.page===page;
  const updating=previewing||!!(preview?.source===draft&&!rendered);
- const ready=preview?.source===draft&&rendered&&!resizing&&!placing?preview:null;
+ const ready=preview?.source===draft&&rendered&&!resizing&&!placing&&!drawing?preview:null;
  const pageCount=preview?.pageCount??1;
  const pageAspect=head?head.height/head.width:297/210;
  const placingImage=images.find(image=>image.id===placing)??null;
@@ -97,14 +100,30 @@ export default function Studio(){
    // Start near the bottom-left of the writing area, where signatures usually go.
    const w=Math.min(.22,head.right-head.left),h=imageHeight({w,aspect:prepared.aspect},pageAspect);
    const image:LetterImage={id:crypto.randomUUID(),name:prepared.name,blob:prepared.blob,url:URL.createObjectURL(prepared.blob),format:prepared.format,aspect:prepared.aspect,pages:'last',w,x:head.left,y:Math.max(0,Math.min(1-h,head.bodyBottom-h-.02))};
-   setMarginsOpen(false);patch({images:[...images,image],placing:image.id});setPage(pageFor('last'));
+   setMarginsOpen(false);cancelDrawing();patch({images:[...images,image],placing:image.id});setPage(pageFor('last'));
    setNotice('Drag your image into place on the preview, then click Done.');
   }catch(e){setError((e as Error).message);}finally{setBusy('');}
  }
  function togglePlacing(id:string){
   if(placing===id){patch({placing:null});return;}
   const image=images.find(item=>item.id===id);if(!image)return;
-  setMarginsOpen(false);patch({placing:id});if(!imageOnPage(image,page,pageCount))setPage(pageFor(image.pages));
+  setMarginsOpen(false);cancelDrawing();patch({placing:id});if(!imageOnPage(image,page,pageCount))setPage(pageFor(image.pages));
+ }
+ // Freehand signing: draw straight on the last page, then the drawing becomes a normal signature image.
+ function startDrawing(){
+  if(!head||busy)return;
+  setMarginsOpen(false);setError('');setNotice('');patch({placing:null});setStrokes([]);setDrawing(true);setPage(pageCount);
+ }
+ function cancelDrawing(){setDrawing(false);setStrokes([]);}
+ async function finishDrawing(){
+  if(!head||!strokes.length)return;
+  try{
+   const signed=await exportSignature(strokes,pageAspect);
+   const count=images.filter(image=>image.name.startsWith('Drawn signature')).length;
+   const image:LetterImage={id:crypto.randomUUID(),name:'Drawn signature'+(count?' '+(count+1):''),blob:signed.blob,url:URL.createObjectURL(signed.blob),format:'png',aspect:signed.aspect,pages:'last',x:signed.x,y:signed.y,w:signed.w};
+   patch({images:[...images,image]});cancelDrawing();
+   setNotice('Signature added. Use Move in Stamps & signatures to adjust it.');
+  }catch(e){setError((e as Error).message);}
  }
  function updateImage(id:string,change:Partial<LetterImage>){patch({images:images.map(image=>image.id===id?{...image,...change}:image)});}
  function setImagePages(id:string,pages:ImagePages){updateImage(id,{pages});if(placing===id)setPage(pageFor(pages));}
@@ -140,28 +159,40 @@ export default function Studio(){
      <DocumentEditor text={text} html={html} fontSize={fontSize} fontFamily={fontFamily} onChange={(text,html)=>patch({text,html})} onSize={fontSize=>patch({fontSize})} onFamily={fontFamily=>patch({fontFamily})} fonts={fonts} onFonts={()=>setFontsOpen(true)}/>
      <div className="editor-meta"><span>{wordCount} word{wordCount===1?'':'s'}</span><span>All pages in one PDF</span></div>
     </section>
-    <ImageLibrary images={images} placing={placing} needsHead={!head} disabled={!!busy||!head} onUpload={file=>void uploadImage(file)} onPlace={togglePlacing} onPages={setImagePages} onRemove={removeImage}/>
+    <ImageLibrary images={images} placing={placing} needsHead={!head} disabled={!!busy||!head} drawing={drawing} onDraw={()=>drawing?cancelDrawing():startDrawing()} onUpload={file=>void uploadImage(file)} onPlace={togglePlacing} onPages={setImagePages} onRemove={removeImage}/>
     {busy&&<p className="notice" role="status">{busy}</p>}
     {notice&&<p className="notice" role="status"><Check size={16}/>{notice}</p>}
     {error&&<p className="notice error" role="alert">{error}</p>}
    </div>
    <section className="preview-column" aria-labelledby="preview-heading">
-    <div className="preview-heading"><h2 id="preview-heading">Preview</h2><span className="preview-status" role="status">{resizing?'Adjusting writing area…':placing?'Placing image…':updating?'Updating…':ready?ready.pageCount+' page'+(ready.pageCount===1?'':'s')+' · '+Math.ceil(ready.bytes/1000)+' KB':'Ready when you are'}</span></div>
-    {head&&<div className="preview-tools"><button className={'button preview-area-toggle'+(marginsOpen?' active':'')} aria-label="Edit writing area in preview" aria-pressed={marginsOpen} onClick={()=>{if(!marginsOpen&&placing)patch({placing:null});setMarginsOpen(open=>!open);}}>{marginsOpen?<Check size={15}/>:<Scan size={15}/>} {marginsOpen?'Done adjusting':'Adjust writing area'}</button><span>{marginsOpen?'Drag the edges or corners to resize':'Set your text area on the page'}</span></div>}
+    <div className="preview-heading"><h2 id="preview-heading">Preview</h2><span className="preview-status" role="status">{resizing?'Adjusting writing area…':drawing?'Drawing signature…':placing?'Placing image…':updating?'Updating…':ready?ready.pageCount+' page'+(ready.pageCount===1?'':'s')+' · '+Math.ceil(ready.bytes/1000)+' KB':'Ready when you are'}</span></div>
+    {head&&<div className="preview-tools"><button className={'button preview-area-toggle'+(marginsOpen?' active':'')} aria-label="Edit writing area in preview" aria-pressed={marginsOpen} onClick={()=>{if(!marginsOpen){if(placing)patch({placing:null});cancelDrawing();}setMarginsOpen(open=>!open);}}>{marginsOpen?<Check size={15}/>:<Scan size={15}/>} {marginsOpen?'Done adjusting':'Adjust writing area'}</button><span>{marginsOpen?'Drag the edges or corners to resize':'Set your text area on the page'}</span></div>}
     <div className="preview-stage" aria-busy={updating}>
      <div className="paper" style={{aspectRatio:head?head.width+' / '+head.height:'210 / 297'}}>
       {head?<img src={visibleImage||head.fileUrl} alt={visibleImage?'Generated letter, page '+page:'Uploaded empty letterhead'} className="paper-image" draggable={false}/>:<div className="paper-placeholder"><div className="placeholder-sheet"><FileText size={36} strokeWidth={1.2}/></div><strong>Your letter starts here</strong><p>Upload your empty letterhead<br/>to see the finished pages.</p></div>}
       {head&&marginsOpen&&<PreviewWritingArea value={head} onChange={region=>patch({head:{...head,...region}})} onDragging={setResizing}/>}
       {head&&placingImage&&imageOnPage(placingImage,page,pageCount)&&<PreviewImage image={placingImage} pageAspect={pageAspect} onChange={position=>updateImage(placingImage.id,position)} onDone={()=>patch({placing:null})} onDragging={setMovingImage}/>}
+      {head&&drawing&&<SignaturePad strokes={strokes} color={inkColor} onStrokes={setStrokes}/>}
      </div>
     </div>
+    {head&&drawing&&<div className="draw-tools" role="toolbar" aria-label="Signature drawing">
+     <p className="area-help">Sign anywhere on the page with your mouse, finger, or pen. It's added to the last page.</p>
+     <div className="draw-actions">
+      <div className="ink-colors" role="radiogroup" aria-label="Ink colour">{INK_COLORS.map(ink=><button key={ink.value} type="button" role="radio" aria-checked={inkColor===ink.value} aria-label={ink.label} title={ink.label} className={'ink-swatch'+(inkColor===ink.value?' active':'')} style={{background:ink.value}} onClick={()=>setInkColor(ink.value)}/>)}</div>
+      <button type="button" className="button secondary" disabled={!strokes.length} onClick={()=>setStrokes(strokes.slice(0,-1))}><Undo2 size={14}/> Undo</button>
+      <button type="button" className="button secondary" disabled={!strokes.length} onClick={()=>setStrokes([])}><Eraser size={14}/> Clear</button>
+      <span className="draw-spacer"/>
+      <button type="button" className="button secondary" onClick={cancelDrawing}><X size={14}/> Cancel</button>
+      <button type="button" className="button primary" disabled={!strokes.length} onClick={()=>void finishDrawing()}><Check size={14}/> Done</button>
+     </div>
+    </div>}
     {head&&marginsOpen&&<p id="area-help" className="area-help">Drag inside the box to move it. Arrow keys nudge a focused handle; hold Shift for larger steps. Applies to every page.</p>}
     {head&&placingImage&&<p id="image-help" className="area-help">{movingImage?'Release to drop it here.':'Drag the image to move it and the corner to resize. Arrow keys nudge it; hold Shift for larger steps. Click Done when it looks right.'}</p>}
     {preview&&thumbnails.length>1&&<div className="page-thumbnails" aria-label="Document pages">{thumbnails.map((src,index)=><button key={index} disabled={!ready} className={page===index+1?'active':''} aria-label={'Go to page '+(index+1)} aria-current={page===index+1?'page':undefined} onClick={()=>setPage(index+1)}><img src={src} alt=""/><span>{index+1}</span></button>)}</div>}
     {preview&&preview.pageCount>1&&<div className="page-navigation"><button className="icon-button" aria-label="Previous page" disabled={!ready||page===1} onClick={()=>setPage(p=>p-1)}><ChevronLeft size={18}/></button><span>Page {page} of {preview.pageCount}</span><button className="icon-button" aria-label="Next page" disabled={!ready||page===preview.pageCount} onClick={()=>setPage(p=>p+1)}><ChevronRight size={18}/></button></div>}
     {previewError&&<p className="notice error" role="alert">{previewError}</p>}
-    {ready?<a className="button primary download-button" href={ready.url} download={filename}><Download size={18}/> Download PDF</a>:<button className="button primary download-button" disabled><Download size={18}/>{updating&&!placing?'Preparing PDF…':'Download PDF'}</button>}
-    <p className="download-hint">{placing?'Click Done on your image to finish placing it.':!head?'Add your letterhead to get started.':!text.trim()?'Add your words to create the PDF.':'Extra pages are added automatically as you write.'}</p>
+    {ready?<a className="button primary download-button" href={ready.url} download={filename}><Download size={18}/> Download PDF</a>:<button className="button primary download-button" disabled><Download size={18}/>{updating&&!placing&&!drawing?'Preparing PDF…':'Download PDF'}</button>}
+    <p className="download-hint">{drawing?'Click Done to add your signature.':placing?'Click Done on your image to finish placing it.':!head?'Add your letterhead to get started.':!text.trim()?'Add your words to create the PDF.':'Extra pages are added automatically as you write.'}</p>
    </section>
   </main>
   <footer className="studio-footer">Built by <strong>cre8tivebuka</strong></footer>
