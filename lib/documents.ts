@@ -3,6 +3,7 @@ import fontkit from '@pdf-lib/fontkit';
 import {customFontBytes} from './custom-fonts';
 import {richLines} from './rich-text';
 import {assetUrl} from './assets';
+import {imageOnPage,type LetterImage} from './letter-images';
 
 export type Letterhead = { fileUrl: string; width: number; height: number; bodyTop: number; bodyBottom: number; left: number; right: number; clearBody: boolean };
 export type Region = Pick<Letterhead, 'bodyTop'|'bodyBottom'|'left'|'right'|'clearBody'>;
@@ -80,7 +81,7 @@ export async function extractLetterText(file: File): Promise<string> {
   if(text.length>100000) throw new Error('This letter is too long. Please keep it below 100,000 characters.');
   return text.trim();
 }
-export async function generateLetterPdf({title,text,template,fontSize=11,lineHeight=1.5,html,fontFamily='Arial'}:{title:string;text:string;template:Letterhead;fontSize?:number;lineHeight?:number;html?:string;fontFamily?:string}) {
+export async function generateLetterPdf({title,text,template,fontSize=11,lineHeight=1.5,html,fontFamily='Arial',images=[]}:{title:string;text:string;template:Letterhead;fontSize?:number;lineHeight?:number;html?:string;fontFamily?:string;images?:LetterImage[]}) {
   if(!text.trim()) throw new Error('Add your letter text before creating a PDF.');
   if(text.length>100000) throw new Error('This letter is too long.');
   if(!(template.right>template.left && template.bodyBottom>template.bodyTop) || template.bodyTop<0 || template.bodyBottom>1 || template.left<0 || template.right>1) throw new Error('Please check the letterhead writing area.');
@@ -90,6 +91,7 @@ export async function generateLetterPdf({title,text,template,fontSize=11,lineHei
   fontPromise ??= fetch(assetUrl('fonts/NotoSans-Regular.ttf')).then(r=>{if(!r.ok) throw new Error('The document font could not load.'); return r.arrayBuffer();}).catch(e=>{fontPromise=undefined;throw e;});
   const fontBytes = await fontPromise;
   const customBytes=customFontBytes(fontFamily);
+  const imageBytes=await Promise.all(images.map(async image=>({image,bytes:await image.blob.arrayBuffer()})));
   // All attempts reuse the full-resolution letterhead. Text remains vector-based.
   for(const quality of [.92,.82,.72,.62]) {
     const pdf=await PDFDocument.create(); pdf.registerFontkit(fontkit); const font=await pdf.embedFont(fontBytes,{subset:true});
@@ -107,6 +109,13 @@ export async function generateLetterPdf({title,text,template,fontSize=11,lineHei
       let drawX=x+(line.align==='center'?(maxWidth-line.width)/2:line.align==='right'?maxWidth-line.width:0);
       for(const run of line.runs){if(run.custom&&run.bold)page.pushOperators(pushGraphicsState(),setTextRenderingMode(TextRenderingMode.FillAndOutline),setLineWidth(fontSize*.02),setStrokingRgbColor(.13,.16,.15));page.drawText(run.text,{x:drawX,y,size:fontSize,font:run.font,color:rgb(.13,.16,.15),xSkew:degrees(run.custom&&run.italic?12:0)});if(run.custom&&run.bold)page.pushOperators(popGraphicsState());if(run.underline)page.drawLine({start:{x:drawX,y:y-1.5},end:{x:drawX+run.width,y:y-1.5},thickness:.6,color:rgb(.13,.16,.15)});drawX+=run.width;}
       y-=leading;
+    }
+    // Stamps and signatures sit on top of the text. Each image is embedded once and reused on every page it appears.
+    const pageCount=pdf.getPageCount();
+    for(const {image,bytes} of imageBytes){
+      const embedded=image.format==='png'?await pdf.embedPng(bytes):await pdf.embedJpg(bytes);
+      const w=width*image.w,h=w*image.aspect;
+      for(let index=0;index<pageCount;index++)if(imageOnPage(image,index+1,pageCount))pdf.getPage(index).drawImage(embedded,{x:width*image.x,y:height*(1-image.y)-h,width:w,height:h});
     }
     pdf.setTitle(title||'Official letter');pdf.setCreator('Letter Studio');pdf.setProducer('Letter Studio');
     const bytes=await pdf.save({useObjectStreams:true});
