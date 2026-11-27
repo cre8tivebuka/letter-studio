@@ -84,9 +84,9 @@ export default function Studio(){
   setBusy('Opening Word document…');setError('');setNotice('');
   try{
    if(!/\.docx$/i.test(file.name))throw new Error('Choose a Word .docx file. Save older .doc files as .docx first.');
-   const docs=await import('@/lib/documents');const content=await docs.extractLetterText(file);
-   patch({text:content,html:'',title:file.name.replace(/\.docx$/i,'')});setPage(1);
-   setNotice('Word text imported. You can edit and format it below.');
+   const {importWordDocument}=await import('@/lib/word-import');const doc=await importWordDocument(file,fonts);
+   patch({text:doc.text,html:doc.html,title:file.name.replace(/\.docx$/i,''),...(doc.fontFamily?{fontFamily:doc.fontFamily}:{}),...(doc.fontSize?{fontSize:doc.fontSize}:{})});setPage(1);
+   setNotice(doc.notice);
   }catch(e){setError((e as Error).message);}finally{setBusy('');}
  }
  // Keep the image being placed on a page where it actually appears (for example if the letter grows).

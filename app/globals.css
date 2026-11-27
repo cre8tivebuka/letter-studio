@@ -185,3 +185,23 @@ h3{font-size:14px}
 .ink-swatch{width:26px;height:26px;padding:0;border:2px solid var(--white);border-radius:50%;box-shadow:0 0 0 1px var(--silver)}
 .ink-swatch.active{box-shadow:0 0 0 2px var(--cobalt)}
 @media(max-width:480px){.draw-spacer{display:none}.draw-actions .button.primary{flex:1}}
+/* Tables and headings in the letter editor */
+.rich-editor h1{font-size:1.6em;margin:0;line-height:1.35}
+.rich-editor h2{font-size:1.35em;margin:0;line-height:1.4}
+.rich-editor h3{font-size:1.15em;margin:0;line-height:1.5}
+.rich-editor table{width:100%;table-layout:fixed;border-collapse:collapse;margin:6px 0}
+.rich-editor td,.rich-editor th{border:1px solid #9aa0aa;padding:4px 7px;vertical-align:top;text-align:left;min-width:24px;overflow-wrap:anywhere}
+.rich-editor th{background:#f0f2f6;font-weight:700}
+.document-toolbar button.active{background:var(--silver)}
+.table-picker{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px;padding:10px 12px;border-bottom:1px solid var(--silver);background:var(--white);font-size:11px}
+.table-picker label{display:grid;gap:4px;color:var(--muted)}
+.table-picker input[type=number]{width:72px;min-height:32px;padding:5px 8px}
+.table-picker .table-header-option{display:flex;align-items:center;gap:6px;min-height:32px;color:var(--midnight)}
+.table-picker-actions{display:flex;gap:6px;margin-left:auto}
+.table-picker-actions .button{min-height:32px;padding:6px 11px;font-size:11px}
+.table-tools{display:flex;align-items:center;flex-wrap:wrap;gap:4px;padding:6px 9px;border-bottom:1px solid var(--silver);background:#edf2ff;font-size:11px}
+.table-tools>span:first-child{font-weight:600;color:var(--cobalt);margin-right:4px}
+.table-tools button{height:28px;min-width:28px;border:0;border-radius:4px;background:transparent;color:var(--midnight);display:inline-grid;place-items:center;padding:4px 7px;font-size:11px}
+.table-tools button:hover{background:#d8e3ff}
+.table-tools button.danger{color:#b42318}
+@media(max-width:480px){.table-picker-actions{margin-left:0;width:100%}.table-picker-actions .button{flex:1}}

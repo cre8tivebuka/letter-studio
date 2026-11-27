@@ -39,7 +39,7 @@ try{
  zip.file('word/document.xml','<?xml version="1.0"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>'+paragraphs.map(t=>'<w:p><w:r><w:t>'+t+'</w:t></w:r></w:p>').join('')+'<w:sectPr/></w:body></w:document>');
  await page.locator('#word-file').setInputFiles({name:'Imported letter.docx',mimeType:'application/vnd.openxmlformats-officedocument.wordprocessingml.document',buffer:await zip.generateAsync({type:'nodebuffer'})});
  const editor=page.getByRole('textbox',{name:'LETTER CONTENT'});
- await page.getByRole('status').filter({hasText:'Word text imported'}).waitFor({timeout:60000});
+ await page.getByRole('status').filter({hasText:'Word document imported'}).waitFor({timeout:60000});
  assert.ok((await editor.innerText()).includes('FINAL MARKER'));
  assert.equal(await page.getByLabel('Document name',{exact:true}).inputValue(),'Imported letter');
  await page.getByRole('button',{name:'Go to page 2',exact:true}).waitFor({timeout:60000});
