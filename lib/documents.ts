@@ -1,7 +1,7 @@
 import { PDFDocument, rgb, degrees, pushGraphicsState, popGraphicsState, setTextRenderingMode, TextRenderingMode, setLineWidth, setStrokingRgbColor } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 import {customFontBytes} from './custom-fonts';
-import {richLines} from './rich-text';
+import {richLines,TABLE_PADDING,type LaidLine,type LaidRow} from './rich-text';
 import {assetUrl} from './assets';
 import {imageOnPage,type LetterImage} from './letter-images';
 
@@ -102,13 +102,37 @@ export async function generateLetterPdf({title,text,template,fontSize=11,lineHei
     const top=height*(1-template.bodyTop)-fontSize; const bottom=height*(1-template.bodyBottom);
     if(top-bottom<leading) throw new Error('The writing area is too small for this font size.');
     const customFont=customBytes?await pdf.embedFont(customBytes,{subset:true}):undefined;
-    const lines=await richLines(pdf,font,{html,text,family:fontFamily,size:fontSize,width:maxWidth,customFont});
-    let page=pdf.addPage([width,height]);page.drawImage(background,{x:0,y:0,width,height});let y=top;
-    for(const line of lines){
-      if(y<bottom){if(pdf.getPageCount()>=30)throw new Error('This letter exceeds the 30-page safety limit. Split it into two documents.');page=pdf.addPage([width,height]);page.drawImage(background,{x:0,y:0,width,height});y=top;}
-      let drawX=x+(line.align==='center'?(maxWidth-line.width)/2:line.align==='right'?maxWidth-line.width:0);
-      for(const run of line.runs){if(run.custom&&run.bold)page.pushOperators(pushGraphicsState(),setTextRenderingMode(TextRenderingMode.FillAndOutline),setLineWidth(fontSize*.02),setStrokingRgbColor(.13,.16,.15));page.drawText(run.text,{x:drawX,y,size:fontSize,font:run.font,color:rgb(.13,.16,.15),xSkew:degrees(run.custom&&run.italic?12:0)});if(run.custom&&run.bold)page.pushOperators(popGraphicsState());if(run.underline)page.drawLine({start:{x:drawX,y:y-1.5},end:{x:drawX+run.width,y:y-1.5},thickness:.6,color:rgb(.13,.16,.15)});drawX+=run.width;}
-      y-=leading;
+    const items=await richLines(pdf,font,{html,text,family:fontFamily,size:fontSize,width:maxWidth,customFont,lineHeight});
+    const ink=rgb(.13,.16,.15);
+    const addPage=()=>{if(pdf.getPageCount()>=30)throw new Error('This letter exceeds the 30-page safety limit. Split it into two documents.');const next=pdf.addPage([width,height]);next.drawImage(background,{x:0,y:0,width,height});return next;};
+    let page=pdf.addPage([width,height]);page.drawImage(background,{x:0,y:0,width,height});
+    // cursor is the top of the next line or table row; a line's baseline sits one font size below it.
+    const topEdge=top+fontSize;let cursor=topEdge;
+    const drawLine=(line:LaidLine,left:number,boxWidth:number,y:number)=>{
+      let drawX=left+(line.align==='center'?(boxWidth-line.width)/2:line.align==='right'?boxWidth-line.width:0);const size=line.size;
+      for(const run of line.runs){if(run.custom&&run.bold)page.pushOperators(pushGraphicsState(),setTextRenderingMode(TextRenderingMode.FillAndOutline),setLineWidth(size*.02),setStrokingRgbColor(.13,.16,.15));page.drawText(run.text,{x:drawX,y,size,font:run.font,color:ink,xSkew:degrees(run.custom&&run.italic?12:0)});if(run.custom&&run.bold)page.pushOperators(popGraphicsState());if(run.underline)page.drawLine({start:{x:drawX,y:y-1.5},end:{x:drawX+run.width,y:y-1.5},thickness:.6,color:ink});drawX+=run.width;}
+    };
+    const pad=fontSize*TABLE_PADDING;
+    const drawRow=(row:LaidRow)=>{
+      const rowTop=cursor,rowBottom=cursor-row.height;
+      for(const cell of row.cells){
+        const box={x:x+cell.x,y:rowBottom,width:cell.width,height:row.height};
+        if(row.header||cell.header)page.drawRectangle({...box,color:rgb(.94,.95,.97)});
+        page.drawRectangle({...box,borderColor:rgb(.6,.63,.67),borderWidth:.6});
+        let lineTop=rowTop-pad;
+        for(const line of cell.lines){drawLine(line,x+cell.x+pad,cell.width-2*pad,lineTop-line.size);lineTop-=line.size*lineHeight;}
+      }
+      cursor=rowBottom;
+    };
+    for(const item of items){
+      if(item.kind==='line'){
+        if(cursor-item.size<bottom){page=addPage();cursor=topEdge;}
+        drawLine(item,x,maxWidth,cursor-item.size);cursor-=item.size*lineHeight;continue;
+      }
+      // Table rows never split; a row that does not fit moves to the next page under a repeated header.
+      if(cursor-item.height<bottom&&cursor<topEdge){page=addPage();cursor=topEdge;for(const header of item.repeat)drawRow(header);}
+      if(cursor-item.height<bottom-.01)throw new Error('A table row is too tall to fit on one page. Split its text across more rows.');
+      drawRow(item);if(item.lastRow)cursor-=fontSize*.6;
     }
     // Stamps and signatures sit on top of the text. Each image is embedded once and reused on every page it appears.
     const pageCount=pdf.getPageCount();

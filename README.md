@@ -5,7 +5,7 @@
 Turn an empty PDF letterhead and your words into one finished PDF.
 
 - Upload an empty PDF letterhead.
-- Type, paste, or import a Word (.docx) letter.
+- Type, paste, or import a Word (.docx) letter, including tables.
 - Format your letter and add your own static TTF/OTF fonts.
 - Resize or move the writing area directly on the preview.
 - Download all pages together as one compact PDF.
@@ -40,7 +40,9 @@ CI sets VITE_BASE_PATH=/letter-studio/ so the logo, fonts, PDF worker, and appli
 
 ## Working with letters
 
-Only the first page of the uploaded letterhead is repeated on each output page. Word import extracts text; apply your preferred formatting in the editor.
+Only the first page of the uploaded letterhead is repeated on each output page. Word import keeps tables, bold, italic, underline, headings, lists, paragraph alignment, and the main font size. The document's main font is matched to an uploaded font with the same name, or to the closest built-in typeface.
+
+Insert a table from the editor toolbar, or paste one from Word, Excel, or Google Docs. Press Tab to move between cells; the table bar adds and removes rows and columns. In the PDF, columns size to their content, long cells wrap, and tables that continue onto another page repeat their header row.
 
 Select **Adjust writing area** above the preview. Drag an edge or corner to resize the box, or drag inside it to move it. The sliders and preview stay synchronized. Arrow keys nudge a focused handle; Shift makes larger adjustments. Controls are excluded from the downloaded PDF.
 
